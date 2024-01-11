@@ -1,11 +1,28 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 torch.set_default_device("cpu")
 
-# see https://huggingface.co/docs/transformers/v4.36.1/en/internal/generation_utils#transformers.TextStreamer
+#Legally mandated copyright 
+
+#Legally mandated discloursure: I modified this code to stop streaming when ai model produces "<|endoftext|>"
+
+# coding=utf-8
+# Copyright 2020 The HuggingFace Inc. team
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 class Streamer:
-    def __init__(self, tokenizer: "AutoTokenizer", skip_prompt: bool = False, **decode_kwargs):
+    def __init__(self, tokenizer: AutoTokenizer, skip_prompt: bool = False, **decode_kwargs):
         self.tokenizer = tokenizer
         self.skip_prompt = skip_prompt
         self.decode_kwargs = decode_kwargs
@@ -66,21 +83,14 @@ class Streamer:
     def on_finalized_text(self, text: str, stream_end: bool = False):
         """Prints the new text to stdout. If the stream is ending, also prints a newline."""
         if not '<|endoftext|>' in text:
-            print(text, flush=True, end="" if not stream_end else None)
+            print(text, flush=True, end="" if not stream_end else '\n')
         else:
-            #TODO: Replace this with something that doesn't end the program
-            quit()
+            #flush cache
+            self.end()
+
 
     def _is_chinese_char(self, cp):
         """Checks whether CP is the codepoint of a CJK character."""
-        # This defines a "chinese character" as anything in the CJK Unicode block:
-        #   https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
-        #
-        # Note that the CJK Unicode block is NOT all Japanese and Korean characters,
-        # despite its name. The modern Korean Hangul alphabet is a different block,
-        # as is Japanese Hiragana and Katakana. Those alphabets are used to write
-        # space-separated words, so they are not treated specially and handled
-        # like the all of the other languages.
         if (
             (cp >= 0x4E00 and cp <= 0x9FFF)
             or (cp >= 0x3400 and cp <= 0x4DBF)  #
@@ -104,6 +114,3 @@ while True:
     inputs = tokenizer(f'Instruct: {input("Prompt: ")} \nOutput:', return_tensors="pt", return_attention_mask=False)
     streamer = Streamer(tokenizer, skip_prompt = True)
     outputs = model.generate(**inputs, max_length=200, streamer = streamer)
-    
-    #text = tokenizer.batch_decode(outputs, skip_special_tokens = False)
-    #print(('\n' + text[0 : text.index('<|endoftext|>')])[text.index('Output: ') + len('Output: ') : len(text)])
