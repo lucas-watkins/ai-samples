@@ -6,10 +6,10 @@ import cv2
 
 vid = cv2.VideoCapture(int(input("OpenCV Webcam Number: ")))
 model = YOLO("yolov8n.pt") 
+running = True
 
 
-
-while True:
+while running:
     
     results = model.predict(source=vid.read()[1], stream=False, verbose = False, conf = 0.5)
 
@@ -30,7 +30,7 @@ while True:
     
     # quit if q is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'): 
-        break
+        running = False
 
 
 
