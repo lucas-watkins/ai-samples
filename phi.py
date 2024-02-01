@@ -1,8 +1,9 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, utils, logging
 from sys import argv
 
 torch.set_default_device((lambda: "cuda" if torch.cuda.is_available() else "cpu")())
+utils.logging.set_verbosity_error()
 
 #Legally mandated copyright 
 
@@ -111,9 +112,13 @@ def get_prompt() -> str:
         prompt += arg + ' '
     return prompt
 
-model = AutoModelForCausalLM.from_pretrained("microsoft/phi-2", torch_dtype=torch.float32, trust_remote_code=True)
-tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2", trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained("microsoft/phi-2", torch_dtype=torch.float32, trust_remote_code=True, 
+                                             revision = "3f879ff35d20d910f0968d0b9b35a9fc074ecb27")
 
+tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2", trust_remote_code=True, 
+                                          revision = "3f879ff35d20d910f0968d0b9b35a9fc074ecb27")
+
+print('\n\n')
 inputs = tokenizer(f'Instruct: {get_prompt()} \nOutput:', return_tensors="pt", return_attention_mask=False)
 streamer = Streamer(tokenizer, skip_prompt = True)
 outputs = model.generate(**inputs, max_length=200, streamer = streamer)
